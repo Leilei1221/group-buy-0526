@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>幾隻貓團購 5/26</title>
+<style>
+  :root {
+    --primary: #2d5a1b;
+    --accent: #5a9e2f;
+    --light: #f4f9f0;
+    --border: #c8e0b8;
+    --text: #1e3a0f;
+    --muted: #6b8f5a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--light); color: var(--text); font-family: -apple-system, "Noto Sans TC", sans-serif; padding-bottom: 100px; }
+
+  header {
+    background: var(--primary);
+    color: #fff;
+    padding: 18px 16px 14px;
+    text-align: center;
+  }
+  header h1 { font-size: 1.4rem; letter-spacing: 2px; }
+  header p { font-size: 0.85rem; margin-top: 4px; opacity: 0.85; }
+
+  .info-bar {
+    background: #fff;
+    border-bottom: 1px solid var(--border);
+    padding: 10px 16px;
+    font-size: 0.82rem;
+    color: var(--muted);
+    display: flex;
+    gap: 18px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .info-bar span { display: flex; align-items: center; gap: 4px; }
+
+  .countdown {
+    background: var(--accent);
+    color: #fff;
+    text-align: center;
+    padding: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+  }
+
+  .products {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 14px 12px;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  @media (min-width: 500px) {
+    .products { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+  }
+  .card img {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    background: #eee;
+  }
+  .card-body { padding: 10px 10px 12px; flex: 1; display: flex; flex-direction: column; gap: 6px; }
+  .card-name { font-size: 0.9rem; font-weight: 700; line-height: 1.3; color: var(--text); }
+  .card-price { font-size: 1.05rem; color: var(--primary); font-weight: 800; }
+  .card-unit { font-size: 0.75rem; color: var(--muted); }
+
+  .qty-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: auto;
+  }
+  .qty-btn {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 1.5px solid var(--accent);
+    background: #fff;
+    color: var(--accent);
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .qty-btn:active { background: var(--accent); color: #fff; }
+  .qty-num { font-size: 1rem; font-weight: 700; min-width: 20px; text-align: center; }
+
+  /* Floating bar */
+  .float-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: var(--primary);
+    color: #fff;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.15);
+    z-index: 100;
+  }
+  .float-info { font-size: 0.85rem; }
+  .float-info strong { font-size: 1.1rem; }
+  .float-btn {
+    background: #fff;
+    color: var(--primary);
+    border: none;
+    border-radius: 24px;
+    padding: 10px 22px;
+    font-size: 0.95rem;
+    font-weight: 800;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .float-btn:disabled { opacity: 0.4; cursor: default; }
+  .float-btn:not(:disabled):active { opacity: 0.8; }
+
+  /* Modal */
+  .overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 20px 20px 0 0;
+    padding: 24px 20px 32px;
+    width: 100%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal h2 { font-size: 1.1rem; margin-bottom: 16px; color: var(--primary); }
+  .modal label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; color: var(--muted); }
+  .modal input, .modal textarea {
+    width: 100%;
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    margin-bottom: 14px;
+    font-family: inherit;
+  }
+  .modal input:focus, .modal textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+  }
+  .order-summary {
+    background: var(--light);
+    border-radius: 10px;
+    padding: 12px 14px;
+    margin-bottom: 16px;
+    font-size: 0.88rem;
+    line-height: 1.8;
+  }
+  .order-summary .total { font-weight: 800; font-size: 1rem; color: var(--primary); margin-top: 6px; }
+  .submit-btn {
+    width: 100%;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .submit-btn:disabled { opacity: 0.5; }
+  .cancel-btn {
+    width: 100%;
+    background: none;
+    color: var(--muted);
+    border: none;
+    padding: 10px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    margin-top: 8px;
+  }
+
+  /* Success */
+  .success-box {
+    display: none;
+    background: var(--light);
+    border: 2px solid var(--accent);
+    border-radius: 14px;
+    padding: 20px;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  .success-box.show { display: block; }
+  .success-box h3 { color: var(--primary); font-size: 1.05rem; margin-bottom: 10px; }
+  .success-box pre {
+    text-align: left;
+    background: #fff;
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 0.82rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+    border: 1px solid var(--border);
+    margin: 10px 0;
+  }
+  .copy-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  .deadline-note {
+    text-align: center;
+    padding: 10px;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .expired-banner {
+    display: none;
+    background: #c0392b;
+    color: #fff;
+    text-align: center;
+    padding: 10px;
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🐱 幾隻貓 團購</h1>
+  <p>新鮮冷凍・單片計價・面交取貨</p>
+</header>
+
+<div class="expired-banner" id="expiredBanner">⚠️ 本團已截止，感謝參與！</div>
+
+<div class="countdown" id="countdown">載入中...</div>
+
+<div class="info-bar">
+  <span>📅 結單：5/26（一）16:00</span>
+  <span>🚗 純面交</span>
+  <span>📦 冷凍配送</span>
+</div>
+
+<div class="products" id="products"></div>
+<div class="deadline-note">⚠️ 結單後不接受追加，請確認數量後再送出</div>
+
+<!-- Floating bar -->
+<div class="float-bar">
+  <div class="float-info">
+    已選 <strong id="totalQty">0</strong> 件・
+    合計 <strong id="totalAmt">$0</strong>
+  </div>
+  <button class="float-btn" id="checkoutBtn" disabled onclick="openModal()">前往結單</button>
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>確認訂單</h2>
+
+    <div class="success-box" id="successBox">
+      <h3>✅ 訂購成功！請複製以下訊息給團主</h3>
+      <pre id="successText"></pre>
+      <button class="copy-btn" onclick="copyMsg()">一鍵複製</button>
+    </div>
+
+    <div id="formSection">
+      <div class="order-summary" id="orderSummary"></div>
+
+      <label>您的姓名 *</label>
+      <input type="text" id="nameInput" placeholder="請輸入真實姓名">
+
+      <label>備註（選填）</label>
+      <textarea id="noteInput" rows="2" placeholder="例如：取貨時間偏好等"></textarea>
+
+      <button class="submit-btn" id="submitBtn" onclick="submitOrder()">確認送出</button>
+      <button class="cancel-btn" onclick="closeModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const GAS_URL = 'GAS_WEBAPP_URL_HERE';
+const DEADLINE = new Date('2026-05-26T16:00:00+08:00');
+
+const PRODUCTS = [
+  { id: 'p01', name: '厚切排骨', unit: '片', price: 125, img: 'images/p01.avif' },
+  { id: 'p02', name: '金饌雞腿', unit: '片', price: 140, img: 'images/p02.avif' },
+  { id: 'p03', name: '鹹酥雞腿肉', unit: '包', price: 250, img: 'images/p03.avif' },
+];
+
+const qty = {};
+PRODUCTS.forEach(p => qty[p.id] = 0);
+
+// Render products
+function renderProducts() {
+  const container = document.getElementById('products');
+  container.innerHTML = PRODUCTS.map(p => `
+    <div class="card">
+      <img src="${p.img}" alt="${p.name}" loading="lazy" onerror="this.style.background='#ddd'">
+      <div class="card-body">
+        <div class="card-name">${p.name}</div>
+        <div class="card-price">$${p.price} <span class="card-unit">/ ${p.unit}</span></div>
+        <div class="qty-control">
+          <button class="qty-btn" onclick="changeQty('${p.id}', -1)">−</button>
+          <span class="qty-num" id="qty_${p.id}">0</span>
+          <button class="qty-btn" onclick="changeQty('${p.id}', +1)">＋</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function changeQty(id, delta) {
+  qty[id] = Math.max(0, qty[id] + delta);
+  document.getElementById('qty_' + id).textContent = qty[id];
+  updateFloatBar();
+}
+
+function totalQty() { return PRODUCTS.reduce((s, p) => s + qty[p.id], 0); }
+function totalAmt() { return PRODUCTS.reduce((s, p) => s + qty[p.id] * p.price, 0); }
+
+function updateFloatBar() {
+  const q = totalQty(), t = totalAmt();
+  document.getElementById('totalQty').textContent = q;
+  document.getElementById('totalAmt').textContent = '$' + t.toLocaleString();
+  document.getElementById('checkoutBtn').disabled = (q === 0 || isExpired());
+}
+
+function isExpired() { return new Date() >= DEADLINE; }
+
+// Countdown
+function updateCountdown() {
+  const now = new Date();
+  const diff = DEADLINE - now;
+  if (diff <= 0) {
+    document.getElementById('countdown').textContent = '⛔ 本團已截止';
+    document.getElementById('expiredBanner').style.display = 'block';
+    document.getElementById('checkoutBtn').disabled = true;
+    return;
+  }
+  const d = Math.floor(diff / 86400000);
+  const h = Math.floor((diff % 86400000) / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  const s = Math.floor((diff % 60000) / 1000);
+  document.getElementById('countdown').textContent =
+    `⏰ 距結單還有 ${d > 0 ? d + '天' : ''}${h}小時${m}分${s}秒`;
+}
+
+function openModal() {
+  if (isExpired()) return;
+  // Build summary
+  const lines = PRODUCTS.filter(p => qty[p.id] > 0)
+    .map(p => `• ${p.name} × ${qty[p.id]}${p.unit}　$${(qty[p.id]*p.price).toLocaleString()}`);
+  document.getElementById('orderSummary').innerHTML =
+    lines.join('<br>') + `<div class="total">合計：$${totalAmt().toLocaleString()}</div>`;
+  document.getElementById('successBox').classList.remove('show');
+  document.getElementById('formSection').style.display = '';
+  document.getElementById('nameInput').value = '';
+  document.getElementById('noteInput').value = '';
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.remove('open');
+}
+
+async function submitOrder() {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) { alert('請輸入姓名'); return; }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = '送出中...';
+
+  const summary = PRODUCTS.filter(p => qty[p.id] > 0)
+    .map(p => `${p.name}×${qty[p.id]}${p.unit}`).join('、');
+  const note = document.getElementById('noteInput').value.trim();
+  const total = totalAmt();
+
+  const params = new URLSearchParams({ name, summary, total, note });
+  PRODUCTS.forEach(p => { if (qty[p.id] > 0) params.append(p.id, qty[p.id]); });
+
+  try {
+    await fetch(GAS_URL, { method: 'POST', body: params, mode: 'no-cors' });
+  } catch(e) {}
+
+  // Build success message
+  const lines = PRODUCTS.filter(p => qty[p.id] > 0)
+    .map(p => `${p.name} × ${qty[p.id]}${p.unit}`);
+  const msg = `${name}你好！\n訂購明細：\n${lines.map(l => '• ' + l).join('\n')}\n總金額：$${total.toLocaleString()}${note ? '\n備註：' + note : ''}`;
+  document.getElementById('successText').textContent = msg;
+  document.getElementById('successBox').classList.add('show');
+  document.getElementById('formSection').style.display = 'none';
+
+  btn.disabled = false;
+  btn.textContent = '確認送出';
+}
+
+function copyMsg() {
+  const text = document.getElementById('successText').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = '已複製！';
+    setTimeout(() => btn.textContent = '一鍵複製', 2000);
+  });
+}
+
+// Click outside modal to close
+document.getElementById('overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+renderProducts();
+updateFloatBar();
+updateCountdown();
+setInterval(updateCountdown, 1000);
+</script>
+</body>
+</html>
